@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -89,7 +90,7 @@ public class NearbyConnectionsPlugin implements MethodCallHandler, FlutterPlugin
                 try {
                     Log.d("nearby_connections", new Integer(inputReceiverStream.available()).toString());
                     if (inputReceiverStream.available() <= 0) break;
-                    bytes = new byte[inputReceiverStream.read()];
+                    bytes = new byte[inputReceiverStream.available()];
                     inputReceiverStream.read(bytes);
                     if(eventSink != null) {
                         eventSink.success(bytes);
@@ -318,6 +319,8 @@ public class NearbyConnectionsPlugin implements MethodCallHandler, FlutterPlugin
                     Nearby.getConnectionsClient(activity).sendPayload(endpointId, Payload.fromStream(senderPayloadPipe[0])).addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
+                            String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss.SSS").format(new java.util.Date());
+                            Log.d("nearby_connections", "onSuccess Stream");
                         }
                     }).addOnFailureListener(new OnFailureListener() {
                         @Override
@@ -328,10 +331,20 @@ public class NearbyConnectionsPlugin implements MethodCallHandler, FlutterPlugin
                     }).addOnCompleteListener(new OnCompleteListener<Void>() {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
-                            Log.d("nearby_connections", "Completed Stream");
+                            String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date());
+                            Log.d("nearby_connections", timeStamp + ": onComplete Stream");
                         }
                     });
                     senderOutputStream = new ParcelFileDescriptor.AutoCloseOutputStream(senderPayloadPipe[1]);
+                    for(int i=0;i<5;i++) {
+                        String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date());
+                        Log.d("nearby_connections", "Here");
+                        Log.d("nearby_connections", timeStamp + ": Sending Stream Chunk " + (new Integer(i).toString()));
+                        byte[] bytes = new byte[10000];
+                        senderOutputStream.write(bytes);
+                        senderOutputStream.flush();
+
+                    }
                 } catch (IOException e) {
                     Log.d("nearby_connections", "Error while creating pipe");
                     Log.d("nearby_connections", e.getMessage());
