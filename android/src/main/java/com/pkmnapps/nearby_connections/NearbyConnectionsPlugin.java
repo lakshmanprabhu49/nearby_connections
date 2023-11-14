@@ -349,34 +349,70 @@ public class NearbyConnectionsPlugin implements MethodCallHandler, FlutterPlugin
                             }
                         });
                         senderOutputStream = new ParcelFileDescriptor.AutoCloseOutputStream(senderPayloadPipe[1]);
+                        Log.d("nearby_connections", "Adding to stream in line 1");
+                        senderOutputStream.write(bytes);
+                        senderOutputStream.flush();
                         isPipeOpen = true;
                     } catch (IOException e) {
                         Log.d("nearby_connections", "Error while creating pipe");
                         Log.d("nearby_connections", e.getMessage());
-                        senderPayloadPipe = null;
-                    }
-                }
-                try {
-                    if (senderOutputStream != null && isPipeOpen && senderInputStream.available() > 0) {
-                        Log.d("nearby_connections", "Adding to stream in line 2");
-                        senderOutputStream.write(bytes);
-                        senderOutputStream.flush();
-                    } else if (senderInputStream.available() <= 0) {
                         Log.d("nearby_connections", "Closing pipe");
-                        senderPayloadPipe[0].close();
-                        senderPayloadPipe[1].close();
-                        isPipeOpen = false;
-                        senderPayloadPipe = null;
-                        senderInputStream = null;
-                        senderOutputStream = null;
+                        try {
+                            senderPayloadPipe[0].close();
+                            senderPayloadPipe[1].close();
+                        } catch (IOException ex) {
+                            ex.printStackTrace();
+                        } finally {
+                            isPipeOpen = false;
+                            senderPayloadPipe = null;
+                            senderInputStream = null;
+                            senderOutputStream = null;
+                            senderPayloadPipe = null;
+                        }
                     }
-                } catch (IOException e) {
-                    isPipeOpen = false;
-                    senderInputStream = null;
-                    senderOutputStream = null;
-                    senderPayloadPipe = null;
-                    Log.d("nearby_connections", e.getMessage());
+                } else {
+                    try {
+                        int availableBytes = senderInputStream.available();
+                        if (senderOutputStream != null && isPipeOpen && availableBytes > 0) {
+                            Log.d("nearby_connections", "Adding to stream in line 2");
+                            try {
+                                senderOutputStream.write(bytes);
+                                senderOutputStream.flush();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            } finally {
+                                isPipeOpen = false;
+                                senderPayloadPipe = null;
+                                senderInputStream = null;
+                                senderOutputStream = null;
+                                senderPayloadPipe = null;
+                            }
+                        } else if (availableBytes <= 0){
+                            Log.d("nearby_connections", "Closing pipe");
+                            senderPayloadPipe[0].close();
+                            senderPayloadPipe[1].close();
+                            isPipeOpen = false;
+                            senderPayloadPipe = null;
+                            senderInputStream = null;
+                            senderOutputStream = null;
+                        }
+                    } catch (IOException e) {
+                        try {
+                            senderPayloadPipe[0].close();
+                            senderPayloadPipe[1].close();
+                        } catch (IOException ex) {
+                            ex.printStackTrace();
+                        } finally {
+                            isPipeOpen = false;
+                            senderPayloadPipe = null;
+                            senderInputStream = null;
+                            senderOutputStream = null;
+                            senderPayloadPipe = null;
+                        }
+                    }
+
                 }
+
                 result.success(true);
                 break;
             }
